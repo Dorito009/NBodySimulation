@@ -1,0 +1,81 @@
+#version 430
+
+// 1) Workgroup size: must match what you set in SimulationHandler (e.g. 256)
+layout(local_size_x = 256) in;
+
+// 2) Mirror of the CPU‐side struct (two vec4’s == 32 bytes total)
+struct Body {
+    vec4 position;   // .xyz = world‐space pos;    .w = (unused or softening)
+    vec4 velocity;   // .xyz = world‐space vel;    .w = mass
+};
+
+// 3) One SSBO holding an array of Body, bound at 0 (must match glBindBufferBase in C++)
+layout(std430, binding = 0) buffer BodyBuffer {
+    Body bodies[];    // all N bodies
+};
+
+// 4) Uniforms for timestep, gravitational constant, softening length
+uniform float dt;          // the time step (seconds)
+uniform float G;           // gravitational constant
+uniform float epsilon;   // softening parameter to avoid singularities
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= bodies.length()) {
+        // Thread out of range → do nothing
+        return;
+    }
+
+    // --- LOAD CURRENT BODY DATA ---
+    Body me    = bodies[i];
+    vec3 pos_i = me.position.xyz;
+    vec3 vel_i = me.velocity.xyz;
+    float m_i  = me.velocity.w;
+
+    // --- COMPUTE ACCELERATION ON BODY i DUE TO ALL OTHER BODIES ---
+    vec3 accel = vec3(0.0);
+
+    // Loop over all bodies; in a production code you’d
+    // fetch length once into a local variable for efficiency,
+    // but length() is fine here for clarity.
+    for (uint j = 0u; j < bodies.length(); ++j) {
+        if (j == i) continue;
+
+        Body other = bodies[j];
+        vec3 pos_j = other.position.xyz;
+        float m_j  = other.velocity.w;
+
+        vec3 r = pos_j - pos_i;
+        float distSqr = dot(r, r) + (epsilon * epsilon);
+        float invDist  = inversesqrt(distSqr);
+        float invDist3 = invDist * invDist * invDist;
+        accel += G * m_j * r * invDist3;
+    }
+
+    // --- LEAPFROG INTEGRATION (KICK‐DRIFT‐KICK) ---
+    // For simplicity, we do one combined step here:
+    //    v(t + dt/2) = v(t) + (dt/2) * a(t)
+    //    x(t + dt)   = x(t) + dt * v(t + dt/2)
+    //    recompute a(t+dt) [we approximate by using a(t) again or do a full two‐pass]
+    //
+    // To keep it simple in one shader invocation, we’ll do a single “symplectic Euler” step:
+    //    v_new = v_old + dt * a
+    //    x_new = x_old + dt * v_new
+    // which is not exactly the textbook leapfrog but still symplectic.
+
+    // 1) Update velocity (half‐kick would be dt/2 * a, but we do full dt here)
+    vel_i += dt * accel;
+
+    // 2) Update position (drift)
+    pos_i += dt * vel_i;
+
+    // --- WRITE UPDATED VALUES BACK INTO THE SSBO ---
+    me.velocity.xyz   = vel_i;
+    me.position.xyz   = pos_i;
+    // Preserve mass in .w
+    me.velocity.w     = m_i;
+    // Optionally, keep position.w as zero (or a softening factor)
+    me.position.w     = 0.0;
+
+    bodies[i] = me;
+}
