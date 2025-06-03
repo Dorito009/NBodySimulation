@@ -2,6 +2,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <iostream>
+
+#include "imgui_impl_sdl2.h"
 #include "../include/src/Shader.h"
 
 Window::Window(const int width, const int height, const std::string& title) : m_width(width), m_height(height) {
@@ -62,19 +64,9 @@ void Window::swapBuffers() const {
 }
 
 
-bool Window::processEvents() {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            m_shouldClose = true;
-        }
-        const Uint8* kb = SDL_GetKeyboardState(nullptr);
-        if (kb[SDL_SCANCODE_ESCAPE]) {
-            m_shouldClose = true;
-            return false;
-        }
-    }
-    return !m_shouldClose;
+void Window::setShouldClose(bool shouldClose)
+{
+    m_shouldClose = shouldClose;
 }
 
 int Window::getWidth() const
@@ -120,9 +112,9 @@ void Window::initSDL() {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 
-    SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
+    // SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
     SDL_SetWindowKeyboardGrab(m_window, SDL_TRUE);
-    SDL_ShowCursor(SDL_DISABLE);
-    SDL_SetRelativeMouseMode(SDL_TRUE);
+    // SDL_ShowCursor(SDL_DISABLE);
+    // SDL_SetRelativeMouseMode(SDL_TRUE);
     SDL_SetWindowGrab(m_window, SDL_TRUE);
 }

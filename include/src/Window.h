@@ -17,14 +17,16 @@ public:
     // Processes the events and returns if the events are processed
     bool processEvents();
 
-    // Returns the width of the window
-    int getWidth() const;
-    // Returns the width of the window
-    int getHeight() const;
+    void setShouldClose(bool shouldClose);
 
-    SDL_GLContext getGLContext() const;
+    // Returns the width of the window
+    [[nodiscard]] int getWidth() const;
+    // Returns the width of the window
+    [[nodiscard]] int getHeight() const;
 
-    SDL_Window *getSDLWindow() const;
+    [[nodiscard]] SDL_GLContext getGLContext() const;
+
+    [[nodiscard]] SDL_Window *getSDLWindow() const;
 
 private:
     SDL_Window*    m_window      = nullptr;
@@ -32,7 +34,6 @@ private:
     const int      m_width       = 0;
     const int      m_height      = 0;
     bool           m_shouldClose = false;
-
     // This wil initiate SDL’s video subsystem
     void initSDL();
 };

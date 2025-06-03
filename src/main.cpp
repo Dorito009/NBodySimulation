@@ -10,24 +10,24 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 
+#include "EventDispatcher.h"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
 #include "Window.h"
 #include "../include/src/Shader.h"
 #include "../include/src/Camera.h"
-#include "../include/src/SimulationHandler.h"
+#include "../depricated/SimulationHandler.h"
 
 
 
 int main(int argc, char* argv[]) {
 
-    Window window(800, 600, "Nbody");
+    Window window(1920, 1080, "Nbody");
     Camera camera(window);
-
-
     SimulationHandler simulation(1000); // Initialize with 1000 bodies
 
+    EventDispatcher dispatcher = EventDispatcher(window, camera);
 
     Shader renderer = Shader({
         {"../src/shaders/bil.geom",GL_GEOMETRY_SHADER},
@@ -47,20 +47,13 @@ int main(int argc, char* argv[]) {
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForOpenGL(window.getSDLWindow(), window.getGLContext());
     ImGui_ImplOpenGL3_Init("#version 460");
-
-    while (window.processEvents()) {
-
+    static int bodyCount = 1000;
+    static bool running = false;
+    while (dispatcher.processEvents()) {
+        std::cout<< "Main Loop: " << camera.getDirty()<<std::endl;
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-
-        // Show the ImGui demo window
-        ImGui::ShowDemoWindow();
-
-        // Rendering
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 
         Uint32 currentTime = SDL_GetTicks();
         frames++;
@@ -71,12 +64,11 @@ int main(int argc, char* argv[]) {
             lastTime = currentTime;
         }
 
-        camera.update(0.1);
-
-        simulation.step();
+        if (running) {simulation.step();}
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
         // 1. Use the render shader
         renderer.use();
@@ -90,10 +82,36 @@ int main(int argc, char* argv[]) {
 
         glBindVertexArray(vao);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, simulation.getBoddySSBO());
-        glDrawArrays(GL_POINTS, 0, 1000);
+        glDrawArrays(GL_POINTS, 0, bodyCount);
         glBindVertexArray(0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         Shader::unUse();
+
+
+        if (ImGui::SliderInt("Number of Bodies", &bodyCount, 100, 50000)) {
+            simulation.newSimulation(bodyCount);
+            running = false;
+        }
+        ImGui::Checkbox("Run Simulation", &running);
+        std::vector<float> m_energy = simulation.getEnergy();
+
+        const int skipFrames = 1000; // or whatever range you want to skip
+        int dataStart = std::min(static_cast<int>(m_energy.size()), skipFrames);
+        int numPoints = static_cast<int>(m_energy.size()) - dataStart;
+
+        if (numPoints > 0) {
+            ImGui::PlotLines("Energy Over Time (Stable Part)",
+                             m_energy.data() + dataStart,
+                             numPoints,
+                             0, nullptr,
+                             FLT_MAX, FLT_MAX,
+                             ImVec2(0, 100));
+        }
+
+        // Rendering
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         window.swapBuffers();
     }
 

@@ -13,6 +13,7 @@ layout(std430, binding = 0) buffer BodyBuffer {
 
 // 3) Output the world‐space position to the geometry shader
 layout(location = 0) out vec3 v_worldPos;
+layout(location = 1) out vec3 v_vel; // View matrix
 
 void main() {
     uint idx = gl_VertexID;            // 0 .. N−1 (no VBO needed)
@@ -20,7 +21,7 @@ void main() {
     vec3 worldPos = b.position.xyz;    // extract vec3 position
 
     v_worldPos = worldPos;
-
+    v_vel = b.velocity.xyz; // Pass velocity to geometry shader
     // Emit a “dummy” point; geometry shader will turn it into a quad
     gl_Position = vec4(worldPos, 1.0);
 }

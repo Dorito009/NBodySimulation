@@ -43,8 +43,14 @@ set(SOURCES
         src/Window.cpp        include/src/Window.h
         src/Shader.cpp        include/src/Shader.h
         src/Camera.cpp        include/src/Camera.h
-        src/SimulationHandler.cpp  include/src/SimulationHandler.h
+        depricated/SimulationHandler.cpp depricated/SimulationHandler.h
         src/Renderer.cpp      include/src/Renderer.h
+        src/NewtonianSimulationHandler.cpp
+        include/src/NewtonianSimulationHandler.h
+        src/EventDispatcher.cpp
+        include/src/EventDispatcher.h
+        src/GuiHandler.cpp
+        include/src/GuiHandler.h
 )
 
 # Create executable

@@ -1,84 +1,44 @@
-#include "../include/src/Camera.h"
+#include "Camera.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <algorithm>
 #include <iostream>
 #include <ostream>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/string_cast.hpp>
-
-//Todo make this class a lot cleaner and add extra things
 
 Camera::Camera(
     Window& window,
-    const glm::vec3 &position,
+    const glm::vec3& target,
+    float distanceToTarget,
     float yaw,
     float pitch,
-    float roll,
     float fov,
     float nearClip,
     float farClip,
     ProjectionType type
-    )
-    : mWindow(window)
-    , mPosition(position)
+)   : mWindow(window)
+    , mTarget(target)
+    , mDistanceToTarget(distanceToTarget)
     , mYaw(yaw)
     , mPitch(pitch)
-    , mRoll(roll)
     , mFOV(fov)
     , mNearClip(nearClip)
     , mFarClip(farClip)
     , mProjType(type)
-    , mProjDirty(true)
     , mViewDirty(true)
+    , mProjDirty(true)
 {
-    mAspect = static_cast<float>(mWindow.getWidth())/static_cast<float>(mWindow.getHeight());
-    updateOrientationVectors();
+    mAspect = static_cast<float>(mWindow.getWidth()) / mWindow.getHeight();
     updateProjectionMatrix();
     updateViewMatrix();
 }
 
-void Camera::update(const float deltaTime) {
-
-
-
-    const float moveSpeed = 5.0f;
-
-    const Uint8* kb = SDL_GetKeyboardState(nullptr);
-    const float velocity = moveSpeed * deltaTime;
-
-    if (kb[SDL_SCANCODE_W]) {
-        mPosition += velocity * mForward;
-        mViewDirty = true;
-    }
-    if (kb[SDL_SCANCODE_S]) {
-        mPosition += -velocity * mForward;
-        mViewDirty = true;
-    }
-    if (kb[SDL_SCANCODE_A]) {
-        mPosition += -velocity * mRight;
-        mViewDirty = true;
-    }
-    if (kb[SDL_SCANCODE_D]) {
-        mPosition += velocity * mRight;
-        mViewDirty = true;
-    }
-
-    int xRel, yRel;
-    SDL_GetRelativeMouseState(&xRel, &yRel);
-
-    if (xRel != 0 || yRel != 0) {
-        constexpr float sensitivity = 0.1f;
-        const float xOffset = -static_cast<float>(xRel) * sensitivity;
-        const float yOffset = -static_cast<float>(yRel) * sensitivity;
-
-        mYaw   += xOffset;
-        mPitch += yOffset;
-
-        mPitch = std::clamp(mPitch, -89.0f, 89.0f);
-        mViewDirty = true;
-    }
+glm::vec3 Camera::getPosition() const {
+    return mPosition;
 }
 
-
+glm::vec3 Camera::getTarget() const {
+    return mTarget;
+}
 
 glm::mat4& Camera::getViewMatrix() {
     if (mViewDirty) {
@@ -95,38 +55,67 @@ glm::mat4& Camera::getProjectionMatrix() {
 }
 
 glm::mat3 Camera::getBasisVectors() {
-    if (mViewDirty) {
-        updateViewMatrix();
-    }
+    if (mViewDirty) updateViewMatrix();
     return glm::mat3(mRight, mUp, mForward);
 }
 
+void Camera::update(float deltaTime) {
+    int mouseX, mouseY;
+    Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+    if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
+        if (!mFirstMouse) {
+            float dx = -(mouseX - mLastMouseX);
+            float dy = mouseY - mLastMouseY;
 
+            float sensitivity = 0.3f;
+            mYaw   += dx * sensitivity;
+            mPitch += dy * sensitivity;
+            mPitch = std::clamp(mPitch, -89.0f, 89.0f);
+            mViewDirty = true;
+        }
+        mFirstMouse = false;
+    } else {
+        mFirstMouse = true;
+    }
 
-void Camera::updateOrientationVectors() {
-    // Create the quaternions
-    const glm::quat qRoll = glm::angleAxis(glm::radians(mRoll), glm::vec3(0, 0, -1));
-    const glm::quat qPitch = glm::angleAxis(glm::radians(mPitch), glm::vec3(1, 0, 0));
-    const glm::quat qYaw = glm::angleAxis(glm::radians(mYaw), glm::vec3(0, 1, 0));
+    if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
+        float dx = mouseX - mLastMouseX;
+        float dy = mouseY - mLastMouseY;
+        float panSpeed = 0.005f * mDistanceToTarget;
+        mTarget += -mRight * dx * panSpeed + mUp * dy * panSpeed;
+        mViewDirty = true;
+    }
 
-    // Combine the quaternions
-    glm::quat orientation = qYaw * qPitch * qRoll;
-    orientation = glm::normalize(orientation);
-
-    mForward = orientation * glm::vec3(0, 0, -1);
-    mRight = orientation * glm::vec3(1, 0, 0);
-    mUp = orientation * glm::vec3(0, 1, 0);
+    mLastMouseX = mouseX;
+    mLastMouseY = mouseY;
 }
 
+void Camera::handleEvent(const SDL_Event &e) {
+    if (e.type == SDL_MOUSEWHEEL) {
+        mDistanceToTarget *= (1.0f - e.wheel.y * 0.1f);
+        mDistanceToTarget = std::clamp(mDistanceToTarget, 0.5f, 5000.0f);
+        mViewDirty = true;
+    }
+    std::cout<< "camera Class: " << mViewDirty<<std::endl;
+}
 
 void Camera::updateViewMatrix() {
-    updateOrientationVectors();
+    float yawRad = glm::radians(mYaw);
+    float pitchRad = glm::radians(mPitch);
 
-    const glm::vec3 target = mPosition + mForward;
-    mViewMatrix = glm::lookAt(mPosition, target, mUp);
+    glm::vec3 offset;
+    offset.x = mDistanceToTarget * cos(pitchRad) * sin(yawRad);
+    offset.y = mDistanceToTarget * sin(pitchRad);
+    offset.z = mDistanceToTarget * cos(pitchRad) * cos(yawRad);
+    std::cout << "Camera offset: " << offset.x << ", " << offset.y << ", " << offset.z << std::endl;
+    mPosition = mTarget + offset;
+    mForward = glm::normalize(mTarget - mPosition);
+    mRight = glm::normalize(glm::cross(mForward, glm::vec3(0, 1, 0)));
+    mUp = glm::normalize(glm::cross(mRight, mForward));
+
+    mViewMatrix = glm::lookAt(mPosition, mTarget, mUp);
     mViewDirty = false;
 }
-
 
 void Camera::updateProjectionMatrix() {
     if (mProjType == ProjectionType::Perspective) {

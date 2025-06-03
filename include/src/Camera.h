@@ -2,71 +2,63 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
-
 #include "Window.h"
 
 class Camera {
 public:
-
     enum class ProjectionType { Perspective, Orthographic };
 
     explicit Camera(
         Window& window,
-        const glm::vec3& position = glm::vec3(0.0f, 0.0f, 0.0f),
-        float yaw = -90.0f,
+        const glm::vec3& target = glm::vec3(0.0f),
+        float distanceToTarget = 10.0f,
+        float yaw = 0.0f,
         float pitch = 0.0f,
-        float roll = 0.0f,
         float fov = 45.0f,
         float nearClip = 0.01f,
         float farClip = 1000.0f,
         ProjectionType type = ProjectionType::Perspective
     );
 
-    // Get the position of the camera
-    glm::vec3 getPosition();
-    // Set the position of the camera
-    glm::vec3 setPosition(const glm::vec3& position);
+    glm::vec3 getPosition() const;
+    glm::vec3 getTarget() const;
 
-    // Get the view matrix
     glm::mat4& getViewMatrix();
-    // Get the projection matrix
     glm::mat4& getProjectionMatrix();
 
-    // Update the position of the camera
     void update(float deltaTime);
-
-    // Get the basis vectors of the camera orientation (right, up, forward)
+    void handleEvent(const SDL_Event& e);
     glm::mat3 getBasisVectors();
-private:
-    // Internal data
-    Window& mWindow;
-    glm::vec3 mPosition;
-    float     mYaw;
-    float     mPitch;
-    float     mRoll;
 
-    // Cached basis vectors
+    bool getDirty() const {return mViewDirty;};
+
+private:
+    Window& mWindow;
+
+    glm::vec3 mTarget;
+    float mDistanceToTarget;
+    float mYaw;
+    float mPitch;
+
+    glm::vec3 mPosition;
     glm::vec3 mForward;
     glm::vec3 mRight;
     glm::vec3 mUp;
 
-    // Projection data
     float mFOV;
     float mAspect;
     float mNearClip;
     float mFarClip;
     ProjectionType mProjType;
 
-    // Cached matrices + dirty flags
     glm::mat4 mViewMatrix;
     glm::mat4 mProjMatrix;
-    bool      mViewDirty;
-    bool      mProjDirty;
+    bool mViewDirty;
+    bool mProjDirty;
 
+    bool mFirstMouse = true;
+    int mLastMouseX = 0, mLastMouseY = 0;
 
-    void updateOrientationVectors();
     void updateViewMatrix();
     void updateProjectionMatrix();
 };
-
-

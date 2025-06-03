@@ -13,7 +13,9 @@ struct Body {
 layout(std430, binding = 0) buffer BodyBuffer {
     Body bodies[];    // all N bodies
 };
-
+layout(std430, binding = 1) buffer EnergyBuffer {
+    vec2 energy[]; // .x = kinetic, .y = potential
+};
 // 4) Uniforms for timestep, gravitational constant, softening length
 uniform float dt;          // the time step (seconds)
 uniform float G;           // gravitational constant
@@ -78,4 +80,21 @@ void main() {
     me.position.w     = 0.0;
 
     bodies[i] = me;
+
+    float kinetic = 0.5 * m_i * dot(vel_i, vel_i);
+
+    // Potential Energy
+    float potential = 0.0;
+    for (uint j = 0u; j < bodies.length(); ++j) {
+        if (j == i) continue;
+
+        Body other = bodies[j];
+        float m_j = other.velocity.w;
+        vec3 r = other.position.xyz - pos_i;
+        float dist = length(r);
+        potential += -G * m_i * m_j / sqrt(dist * dist + epsilon * epsilon);
+    }
+
+    // Store to energy buffer (PE will be double-counted, fix on CPU)
+    energy[i] = vec2(kinetic, potential);
 }
