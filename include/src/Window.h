@@ -22,6 +22,10 @@ public:
     // Returns the width of the window
     int getHeight() const;
 
+    SDL_GLContext getGLContext() const;
+
+    SDL_Window *getSDLWindow() const;
+
 private:
     SDL_Window*    m_window      = nullptr;
     SDL_GLContext  m_context     = nullptr;

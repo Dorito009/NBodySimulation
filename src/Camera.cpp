@@ -1,4 +1,4 @@
-#include "Camera.h"
+#include "../include/src/Camera.h"
 #include <algorithm>
 #include <iostream>
 #include <ostream>

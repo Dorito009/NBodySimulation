@@ -10,10 +10,13 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_sdl2.h"
 #include "Window.h"
-#include "Shader.h"
-#include "Camera.h"
-#include "SimulationHandler.h"
+#include "../include/src/Shader.h"
+#include "../include/src/Camera.h"
+#include "../include/src/SimulationHandler.h"
 
 
 
@@ -40,7 +43,24 @@ int main(int argc, char* argv[]) {
 
     Uint32 lastTime = SDL_GetTicks();
     int frames = 0;
+
+    ImGui::CreateContext();
+    ImGui_ImplSDL2_InitForOpenGL(window.getSDLWindow(), window.getGLContext());
+    ImGui_ImplOpenGL3_Init("#version 460");
+
     while (window.processEvents()) {
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+
+        // Show the ImGui demo window
+        ImGui::ShowDemoWindow();
+
+        // Rendering
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 
         Uint32 currentTime = SDL_GetTicks();
         frames++;
@@ -76,4 +96,13 @@ int main(int argc, char* argv[]) {
         Shader::unUse();
         window.swapBuffers();
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
+    SDL_GL_DeleteContext(window.getGLContext());
+    SDL_DestroyWindow(window.getSDLWindow());
+    SDL_Quit();
+
 }

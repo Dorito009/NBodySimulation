@@ -1,46 +1,59 @@
 cmake_minimum_required(VERSION 3.5)
 project(nbody_simulation)
 
-# Require at least C++11
+# Require C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# look for libaries
+# Find libraries
 find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glm REQUIRED)
 
+# ImGui paths
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui)
+set(IMGUI_BACKENDS ${IMGUI_DIR}/backends)
+
 # Include directories
 include_directories(
-    ${SDL2_INCLUDE_DIRS}
-    ${OPENGL_INCLUDE_DIR}
-    ${GLEW_INCLUDE_DIRS}
-    ${glm_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${SDL2_INCLUDE_DIRS}
+        ${OPENGL_INCLUDE_DIR}
+        ${GLEW_INCLUDE_DIRS}
+        ${glm_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/src
+        ${IMGUI_DIR}
+        ${IMGUI_BACKENDS}
 )
 
-# Sources
+# ImGui library
+add_library(imgui
+        ${IMGUI_DIR}/imgui.cpp
+        ${IMGUI_DIR}/imgui_draw.cpp
+        ${IMGUI_DIR}/imgui_widgets.cpp
+        ${IMGUI_DIR}/imgui_tables.cpp
+        ${IMGUI_DIR}/imgui_demo.cpp
+        ${IMGUI_BACKENDS}/imgui_impl_sdl2.cpp
+        ${IMGUI_BACKENDS}/imgui_impl_opengl3.cpp
+)
+
+# Your source files
 set(SOURCES
-        src/Window.cpp
-        include/Window.h
-        src/Shader.cpp
-        include/Shader.h
         src/main.cpp
-        src/Camera.cpp
-        include/Camera.h
-        src/SimulationHandler.cpp
-        include/SimulationHandler.h
-        src/Renderer.cpp
-        include/Renderer.h
+        src/Window.cpp        include/src/Window.h
+        src/Shader.cpp        include/src/Shader.h
+        src/Camera.cpp        include/src/Camera.h
+        src/SimulationHandler.cpp  include/src/SimulationHandler.h
+        src/Renderer.cpp      include/src/Renderer.h
 )
 
-# Declare the executable
+# Create executable
 add_executable(nbody ${SOURCES})
 
-# Link against libaries
+# Link everything
 target_link_libraries(nbody
-    ${SDL2_LIBRARIES}
-    ${OPENGL_gl_LIBRARY}
-    ${GLEW_LIBRARIES}
+        ${SDL2_LIBRARIES}
+        ${OPENGL_gl_LIBRARY}
+        ${GLEW_LIBRARIES}
+        imgui
 )

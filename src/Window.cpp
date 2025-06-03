@@ -1,8 +1,8 @@
-#include "../include/Window.h"
+#include "../include/src/Window.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <iostream>
-#include "../include/Shader.h"
+#include "../include/src/Shader.h"
 
 Window::Window(const int width, const int height, const std::string& title) : m_width(width), m_height(height) {
 
@@ -85,6 +85,16 @@ int Window::getWidth() const
 int Window::getHeight() const
 {
     return m_height;
+}
+
+SDL_GLContext Window::getGLContext() const
+{
+    return m_context;
+}
+
+SDL_Window *Window::getSDLWindow() const
+{
+    return m_window;
 }
 
 void Window::initSDL() {
