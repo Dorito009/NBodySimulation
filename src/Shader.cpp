@@ -95,7 +95,7 @@ int Shader::getUniformLocation(const std::string& name) const {
     // Ask the location
     const int location = glGetUniformLocation(m_programID, name.c_str());
     if (location == -1) {
-        std::cerr << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
+        std::cerr << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << m_shaderPathsAndStages[0].first<< std::endl;
     }
 
     // Save the location and return it

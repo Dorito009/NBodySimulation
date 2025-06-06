@@ -1,0 +1,54 @@
+#version 430
+
+layout(local_size_x = 256) in;
+
+struct Body {
+    vec4 position;   // .xyz = world-space pos;    .w = (unused)
+    vec4 impulse;   // .xyz = world-space vel;    .w = mass
+    vec4 acceleration; // (Unused in this method)
+};
+
+layout(std430, binding = 0) buffer BodyBuffer {
+    Body bodies[];    // all N bodies
+};
+
+uniform float dt;          // the time step
+uniform float G;           // gravitational constant
+uniform float epsilon;   // softening parameter to avoid singularities
+
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    uint numBodies = int(bodies.length());
+
+    if (i >= numBodies) {
+        // Thread out of range → do nothing
+        return;
+    }
+
+    // Get the current body data
+    Body me    = bodies[i];
+    vec3 pos_i = me.position.xyz;
+    vec3 vel_i = me.impulse.xyz;
+    float m_i  = me.impulse.w;
+
+    vec3 acc = vec3(0.0);
+
+    for (uint j = 0u; j < numBodies; ++j) {
+        if (j == i) continue;
+
+        Body other = bodies[j];
+        vec3 pos_j = other.position.xyz;
+        float m_j  = other.impulse.w;
+
+        vec3 r = pos_j - pos_i;
+        float distSqr = dot(r, r) + (epsilon * epsilon);
+        float invDist  = inversesqrt(distSqr);
+        float invDist3 = invDist * invDist * invDist;
+
+        acc += G * m_j * r * invDist3;
+    }
+    acc = G * 100 * -pos_i * 1/(pow(length(pos_i), 3));
+    me.impulse.xyz = sqrt(length(me.position.xyz) * length(acc)) * normalize(cross(vec3(0, 1, 0), pos_i));
+    bodies[i] = me;
+}

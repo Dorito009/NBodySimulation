@@ -51,6 +51,8 @@ set(SOURCES
         include/src/EventDispatcher.h
         src/GuiHandler.cpp
         include/src/GuiHandler.h
+        src/StructureGenerator.cpp
+        include/src/StructureGenerator.h
 )
 
 # Create executable

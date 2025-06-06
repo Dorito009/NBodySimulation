@@ -4,16 +4,17 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include "NewtonianSimulationHandler.h"
 #include "../include/src/Shader.h"
 
-struct Body {
-    glm::vec4 position;
-    // impulse.xyz is velocity .w is mass
-    glm::vec4 impulse;
-
-    Body(const glm::vec4& position, const glm::vec4& impulse) :
-        position(position), impulse(impulse) {}
-};
+// struct Body {
+//     glm::vec4 position;
+//     // impulse.xyz is velocity .w is mass
+//     glm::vec4 impulse;
+//
+//     Body(const glm::vec4& position, const glm::vec4& impulse) :
+//         position(position), impulse(impulse) {}
+// };
 
 
 

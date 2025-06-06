@@ -96,7 +96,6 @@ void Camera::handleEvent(const SDL_Event &e) {
         mDistanceToTarget = std::clamp(mDistanceToTarget, 0.5f, 5000.0f);
         mViewDirty = true;
     }
-    std::cout<< "camera Class: " << mViewDirty<<std::endl;
 }
 
 void Camera::updateViewMatrix() {
@@ -107,7 +106,6 @@ void Camera::updateViewMatrix() {
     offset.x = mDistanceToTarget * cos(pitchRad) * sin(yawRad);
     offset.y = mDistanceToTarget * sin(pitchRad);
     offset.z = mDistanceToTarget * cos(pitchRad) * cos(yawRad);
-    std::cout << "Camera offset: " << offset.x << ", " << offset.y << ", " << offset.z << std::endl;
     mPosition = mTarget + offset;
     mForward = glm::normalize(mTarget - mPosition);
     mRight = glm::normalize(glm::cross(mForward, glm::vec3(0, 1, 0)));

@@ -3,7 +3,8 @@
 // 1) Declare the same Body struct (32 bytes; two vec4’s)
 struct Body {
     vec4 position;   // .xyz = world‐pos; .w = (unused)
-    vec4 velocity;   // .xyz = world‐vel; .w = mass
+    vec4 velocity;
+    vec4 acc;// .xyz = world‐vel; .w = mass
 };
 
 // 2) Bind the SSBO at binding = 0 (must match glBindBufferBase(..., 0, ...))

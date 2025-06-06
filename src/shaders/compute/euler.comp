@@ -1,0 +1,76 @@
+#version 430
+
+layout(local_size_x = 256) in;
+
+struct Body {
+    vec4 position;   // .xyz = world-space pos;    .w = (unused)
+    vec4 impulse;   // .xyz = world-space vel;    .w = mass
+    vec4 acceleration; // (Unused in this method)
+};
+
+layout(std430, binding = 0) buffer BodyBuffer {
+    Body bodies[];    // all N bodies
+};
+layout(std430, binding = 1) buffer EnergyBuffer {
+    vec2 energy[]; // .x = KE, .y = 2 * PE
+};
+
+uniform float dt;          // the time step
+uniform float G;           // gravitational constant
+uniform float epsilon;   // softening parameter to avoid singularities
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    uint numBodies = int(bodies.length());
+
+    if (i >= numBodies) {
+        // Thread out of range → do nothing
+        return;
+    }
+
+    // Get the current body data
+    Body me    = bodies[i];
+    vec3 pos_i = me.position.xyz;
+    vec3 vel_i = me.impulse.xyz;
+    float m_i  = me.impulse.w;
+
+    vec3 acc = vec3(0.0);
+
+    // Calculate kinetic and create potential energy variable
+    float kinetic = 0.5f * m_i * dot(vel_i, vel_i);
+    float potential = 0.0f;
+
+    for (uint j = 0u; j < numBodies; ++j) {
+        if (j == i) continue;
+
+        Body other = bodies[j];
+        vec3 pos_j = other.position.xyz;
+        float m_j  = other.impulse.w;
+
+        vec3 r = pos_j - pos_i;
+        float distSqr = dot(r, r) + (epsilon * epsilon);
+        float invDist  = inversesqrt(distSqr);
+        float invDist3 = invDist * invDist * invDist;
+
+        acc += G * m_j * r * invDist3;
+        potential += -G * m_i * m_j * invDist; // Potential energy
+    }
+    // Remove these lines
+    potential = -G * 100 * m_i * 1/(pow(length(pos_i), 2));
+    acc = G * 100 * -pos_i * 1/(pow(length(pos_i), 3));
+
+    // Update velocity and position using
+    vel_i += acc * dt;
+    pos_i += vel_i * dt;
+
+    // Store the updated values back into the body
+    me.impulse.xyz = vel_i;
+    me.position.xyz = pos_i;
+    me.acceleration.xyz = acc;
+
+    // Store the updated body back into the buffer
+    bodies[i] = me;
+
+    // Store the kinetic and potential energy
+    energy[i] = vec2(kinetic, potential);
+}
